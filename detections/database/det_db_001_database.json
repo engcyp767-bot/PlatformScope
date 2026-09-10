@@ -1,0 +1,91 @@
+{
+  "id": "DET-DB-001",
+  "name": "محاولة حقن قواعد البيانات المتقدم (SQL Injection - Stacked Queries)",
+  "name_en": "Advanced SQL Injection Attempt",
+  "description": "رصد استعلامات SQL تتضمن عمليات استعلام متراكمة أو دوال تفريغ مثل UNION SELECT و WAITFOR DELAY.",
+  "category": "database",
+  "severity": "critical",
+  "confidence": 92,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "استغلال ثغرات تطبيقات الويب (Exploit Public-Facing Application)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Initial Access"
+    ],
+    "techniques": [
+      "T1190 - Exploit Public-Facing Application"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "union select"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "waitfor delay"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "order by 1--"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 1,
+    "time_window_seconds": 60,
+    "min_confidence": 85,
+    "group_by": [
+      "source_ip",
+      "destination_ip"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "message": "SELECT * FROM users WHERE id=1 UNION SELECT null, username, password FROM users",
+        "source_ip": "192.168.10.50"
+      }
+    ],
+    "negative": [
+      {
+        "message": "SELECT id, name FROM products WHERE category = 5",
+        "source_ip": "192.168.10.50"
+      }
+    ]
+  },
+  "tags": [
+    "database",
+    "sqli",
+    "owasp_top10",
+    "injection"
+  ],
+  "recommendations": [
+    "حظر عنوان IP المهاجم في جدار حماية تطبيقات الويب WAF واستخدام المعاملات الجاهزة (Prepared Statements)."
+  ]
+}

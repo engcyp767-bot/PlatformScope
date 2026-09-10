@@ -1,0 +1,100 @@
+{
+  "id": "DET-WIN-002",
+  "name": "محاولات دخول فاشلة وتخمين كلمات المرور (Failed Logon Brute Force)",
+  "name_en": "Failed Logon Brute Force",
+  "description": "رصد محاولات تسجيل دخول فاشلة متعددة (Event ID 4625) تشير إلى هجوم تخمين أو إغلاق حساب.",
+  "category": "windows",
+  "severity": "high",
+  "confidence": 85,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "وصول أولي وسرقة بيانات الاعتماد (Credential Access)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Credential Access"
+    ],
+    "techniques": [
+      "T1110 - Brute Force",
+      "T1110.001 - Password Guessing"
+    ]
+  },
+  "condition": {
+    "and": [
+      {
+        "field": "event_id",
+        "operator": "eq",
+        "value": "4625"
+      },
+      {
+        "field": "action",
+        "operator": "in",
+        "value": [
+          "block",
+          "failure",
+          "failed",
+          "0x1"
+        ]
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 3,
+    "time_window_seconds": 120,
+    "min_confidence": 80,
+    "group_by": [
+      "username",
+      "src_ip"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "event_id": "4625",
+        "log_source": "windows",
+        "action": "failure",
+        "username": "admin",
+        "src_ip": "192.168.1.100",
+        "message": "An account failed to log on"
+      }
+    ],
+    "negative": [
+      {
+        "event_id": "4624",
+        "log_source": "windows",
+        "action": "success",
+        "username": "admin",
+        "src_ip": "192.168.1.100",
+        "message": "An account was successfully logged on"
+      }
+    ]
+  },
+  "tags": [
+    "windows",
+    "bruteforce",
+    "auth_failure",
+    "4625"
+  ],
+  "recommendations": [
+    "مراجعة الحساب المستهدف والتحقق من مصدر عنوان IP المهاجم وحظره على جدار الحماية."
+  ]
+}

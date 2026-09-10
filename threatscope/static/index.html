@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="منصة داخلية لتحليل ملفات التهديدات وإثراء الهاشات وإصدار تقارير رسمية">
+  <title>ThreatScope — تحليل استخبارات التهديدات</title>
+  <link rel="icon" href="/favicon.svg?v=analytics-shield-2" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css?v=single-row-2">
+  <link rel="stylesheet" href="/rtl-fixes.css?v=1">
+  <link rel="stylesheet" href="/report-preview.css?v=1">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/threatscope/" aria-label="ThreatScope">
+      <span class="brand-mark">TS</span>
+      <span><b>ThreatScope</b><small>Threat Intelligence Workspace</small></span>
+    </a>
+    <div class="top-actions"><span class="system-status"><i></i> يعمل محليًا</span><button id="newAnalysis" class="ghost hidden">تحليل جديد</button></div>
+  </header>
+
+  <main>
+    <section id="uploadView" class="hero">
+      <div class="hero-copy">
+        <span class="kicker"><i></i> مساحة عمل التحليل الأمني</span>
+        <h1>حوّل بيانات التنبيهات إلى <em>قرار أمني واضح</em></h1>
+        <p>حلّل الحوادث والأجهزة والهاشات محليًا، وتحقق من مؤشرات الاختراق عبر المصادر المفعّلة، ثم احصل على نتائج مرتبة وتقرير جاهز للمراجعة.</p>
+        <div class="trust-row">
+          <span><i>✓</i> معالجة محلية وآمنة</span>
+          <span><i>✓</i> لا تُرفع العينات</span>
+          <span><i>✓</i> تقرير عربي واضح</span>
+        </div>
+      </div>
+
+      <div class="upload-panel">
+        <div class="upload-panel-head">
+          <span class="panel-step">01</span>
+          <div><small>ابدأ من هنا</small><h2>أضف ملف التنبيهات</h2></div>
+        </div>
+        <label class="source-system-picker" for="sourceSystem">
+          <span>مصدر بيانات XDR</span>
+          <select id="sourceSystem" required>
+            <option value="">اختر النظام قبل رفع الملف</option>
+            <option value="xdr_1">C-IN</option>
+            <option value="xdr_2">DCS</option>
+            <option value="xdr_3">C-OUT</option>
+          </select>
+          <small>سيُحلل سلوك كل نظام بصورة مستقلة.</small>
+        </label>
+        <div id="dropZone" class="drop-zone" tabindex="0" role="button" aria-label="اختيار بيانات التهديدات">
+          <input id="fileInput" type="file" accept=".xlsx,.csv" hidden>
+          <span class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/></svg></span>
+          <h2>اسحب الملف وأفلته هنا</h2>
+          <p>أو اضغط لاختياره من جهازك</p>
+          <span id="limitText" class="limit">XLSX أو CSV · حد أقصى 20 MB</span>
+        </div>
+        <div id="selectedFile" class="selected-file hidden">
+          <div><span class="file-icon">✓</span><span><b id="fileName">بيانات التهديدات جاهزة للتحليل</b><small id="fileSize"></small></span></div>
+          <button id="clearFile" aria-label="إزالة البيانات">×</button>
+        </div>
+        <button id="analyzeButton" class="primary" disabled>بدء التحليل الآمن <span>←</span></button>
+        <p class="privacy-note"><i>✓</i> تتم معالجة البيانات داخل جهازك، ولا تُرسل الملفات إلى مصدر خارجي.</p>
+        <div id="progress" class="progress hidden"><div class="progress-bar"><span></span></div><p>جارٍ توحيد بيانات التهديدات وتحليلها…</p></div>
+        <div id="uploadError" class="error hidden"></div>
+      </div>
+    </section>
+
+    <section id="dashboardView" class="dashboard hidden">
+      <div class="dashboard-head">
+        <div><span class="kicker">نتائج التحليل</span><h1 id="dashboardTitle">تقرير التهديدات</h1><p id="dashboardMeta"></p></div>
+        <div class="action-row">
+          <button id="enrichButton" class="secondary">فحص الجديد واستخدام المحفوظ</button>
+          <label class="scan-mode-switch" title="تجاهل النتائج المحفوظة وإعادة الفحص من المصادر الخارجية">
+            <input id="forceRefreshToggle" type="checkbox">
+            <span class="switch-track"><span></span></span>
+            <span class="switch-label">تحديث من المصادر</span>
+          </label>
+          <a id="excelLink" class="ghost" href="#">تصدير البيانات التفصيلية</a>
+          <button id="reportLink" class="ghost" type="button">معاينة Word</button>
+          <a id="wordLink" class="primary compact" href="#">تنزيل Word الرسمي</a>
+        </div>
+      </div>
+
+      <div id="providerNotice" class="notice hidden"></div>
+      <div id="summaryCards" class="summary-grid"></div>
+
+      <article id="modelAnalysisPanel" class="panel model-analysis-panel hidden">
+        <div class="panel-head"><div><span>قراءة مترابطة للأدلة</span><h2>التقييم التحليلي المتقدم</h2></div><span id="modelAnalysisStatus" class="status-pill"></span></div>
+        <p id="modelAnalysisSummary" class="model-analysis-summary"></p>
+        <div id="modelAnalysisPatterns" class="model-analysis-list"></div>
+        <div id="modelAnalysisRecommendations" class="model-analysis-list"></div>
+      </article>
+
+      <div class="grid-two">
+        <article class="panel"><div class="panel-head"><div><span>التوزيع</span><h2>تصنيف التهديدات</h2></div></div><div id="classificationChart" class="bar-chart"></div></article>
+        <article class="panel"><div class="panel-head"><div><span>الانتشار</span><h2>الأجهزة الأكثر تعرضًا</h2></div></div><div id="endpointChart" class="bar-chart"></div></article>
+      </div>
+
+      <div class="grid-two quality-grid">
+        <article class="panel"><div class="panel-head"><div><span>حالة البيانات</span><h2>مؤشرات الجودة</h2></div></div><div id="qualityList" class="quality-list"></div></article>
+        <article class="panel"><div class="panel-head"><div><span>سير المعالجة</span><h2>استخبارات الهاشات</h2></div><span id="intelStatus" class="status-pill">لم يبدأ</span></div><div id="providerList" class="provider-list"></div></article>
+      </div>
+
+      <article class="panel findings-panel">
+        <div class="panel-head findings-head"><div><span>مرتبة حسب الأولوية</span><h2>النتائج الأمنية</h2></div><div class="filters"><input id="searchInput" type="search" placeholder="ابحث بالهاش أو الجهاز أو التهديد"><select id="riskFilter"><option value="">كل المستويات</option><option>حرج</option><option>مرتفع</option><option>متوسط</option><option>منخفض</option></select></div></div>
+        <div class="table-wrap"><table><thead><tr><th>الدرجة</th><th>المستوى</th><th>التهديد</th><th>الجهاز</th><th>التصنيف</th><th>الهاش</th><th>حالة الحادث</th><th>تقدير النموذج</th><th>حكم المحلل</th></tr></thead><tbody id="findingsBody"></tbody></table></div>
+        <div id="tableFoot" class="table-foot"></div>
+      </article>
+
+      <div class="danger-zone"><div><b>حذف بيانات المهمة</b><p>يحذف بيانات التهديدات ونتائج التحليل من الجهاز. لا يمكن التراجع.</p></div><button id="deleteJob" class="danger">حذف المهمة</button></div>
+    </section>
+  </main>
+  <footer>ThreatScope MVP · معالجة محلية · لا تُرسل إلا الهاشات إلى المصادر التي يفعّلها مسؤول النظام</footer>
+  <div id="wordPreviewOverlay" class="report-preview-overlay" hidden>
+    <section class="report-preview-dialog" role="dialog" aria-modal="true" aria-label="معاينة تقرير Word">
+      <header class="report-preview-head"><div class="report-preview-title"><b>معاينة تقرير Word</b><small>هذه المعاينة مولّدة من ملف Word نفسه</small></div><div class="report-preview-actions"><a id="previewDownloadWord" href="#">تنزيل Word</a><button id="closeWordPreview" type="button">إغلاق</button></div></header>
+      <iframe id="wordPreviewFrame" class="report-preview-frame" title="معاينة التقرير"></iframe>
+    </section>
+  </div>
+  <script src="app.js?v=word-preview-2"></script>
+</body>
+</html>

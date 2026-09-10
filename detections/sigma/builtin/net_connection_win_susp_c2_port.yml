@@ -1,0 +1,50 @@
+title: Suspicious Outbound Connection to Common C2 Ports
+id: 8d2c4912-70b1-4f91-b3b2-7a0e5b881023
+status: production
+description: Detects outbound network connections to high-risk ports commonly utilized by Command and Control (C2) frameworks like Cobalt Strike, Metasploit, or Havoc.
+author: SOC Detection Engineering Team
+date: 2024/03/05
+modified: 2026/03/12
+license: Apache-2.0
+references:
+    - https://attack.mitre.org/techniques/T1071/
+tags:
+    - attack.command_and_control
+    - attack.t1071
+logsource:
+    category: network_connection
+    product: windows
+detection:
+    selection:
+        DestinationPort:
+            - 4444
+            - 5555
+            - 8888
+            - 9001
+            - 1337
+    filter_local:
+        DestinationIp|startswith:
+            - '127.'
+            - '10.'
+            - '192.168.'
+            - '172.16.'
+    condition: selection and not filter_local
+falsepositives:
+    - Custom internal development services.
+level: high
+fields:
+    - SourceIp
+    - DestinationIp
+    - DestinationPort
+    - Protocol
+test_samples:
+    positive:
+        - SourceIp: '192.168.1.50'
+          DestinationIp: '198.51.100.23'
+          DestinationPort: 4444
+          Protocol: 'tcp'
+    negative:
+        - SourceIp: '192.168.1.50'
+          DestinationIp: '192.168.1.100'
+          DestinationPort: 4444
+          Protocol: 'tcp'

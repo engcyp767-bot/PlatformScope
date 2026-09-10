@@ -1,0 +1,45 @@
+title: Reconnaissance via Whoami Execution
+id: e70fa4a3-48be-4061-9c6f-6ad2fb53c306
+status: production
+description: Detects discovery commands using whoami.exe with privilege or group enumeration switches, typical of post-exploitation reconnaissance.
+author: SOC Detection Engineering Team
+date: 2024/02/10
+modified: 2026/02/01
+license: Apache-2.0
+references:
+    - https://attack.mitre.org/techniques/T1033/
+tags:
+    - attack.discovery
+    - attack.t1033
+logsource:
+    category: process_creation
+    product: windows
+detection:
+    selection_proc:
+        Image|endswith:
+            - '\whoami.exe'
+    selection_cmd:
+        CommandLine|contains:
+            - '/priv'
+            - '/groups'
+            - '/all'
+    condition: selection_proc and selection_cmd
+falsepositives:
+    - IT Administrator manual audit sessions.
+level: medium
+fields:
+    - Image
+    - CommandLine
+    - User
+    - ComputerName
+test_samples:
+    positive:
+        - Image: 'C:\Windows\System32\whoami.exe'
+          CommandLine: 'whoami.exe /priv'
+          User: 'jdoe'
+          ComputerName: 'WKSTN-101'
+    negative:
+        - Image: 'C:\Windows\System32\whoami.exe'
+          CommandLine: 'whoami'
+          User: 'jdoe'
+          ComputerName: 'WKSTN-101'

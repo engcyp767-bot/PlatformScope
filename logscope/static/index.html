@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-width=1.0">
+    <title>LogScope - تحليل تدفقات الشبكة المتقدم</title>
+    <link rel="icon" href="/favicon.svg?v=analytics-shield-2" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="/rtl-fixes.css?v=1">
+    <link rel="stylesheet" href="/report-preview.css?v=1">
+</head>
+<body>
+
+    <!-- Header -->
+    <header class="top-nav glass-panel">
+        <div class="logo-area">
+            <div class="logo-icon"></div>
+            <h1 class="logo-text">Flow<span class="highlight">Scope</span></h1>
+        </div>
+        <div class="nav-actions">
+            <span class="status-badge" id="server-status">جاري الفحص...</span>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+        
+        <!-- Upload State -->
+        <section id="upload-view" class="view-section active">
+            <div class="hero-section">
+                <h2>مرحباً بك في <span class="highlight">LogScope</span></h2>
+                <p>منصة تحليل محلية آمنة لبيانات وأحداث Progress Flowmon</p>
+            </div>
+            
+            <label class="source-system-picker" for="source-system">
+                <span>مصدر بيانات Flow</span>
+                <select id="source-system" required>
+                    <option value="">اختر النظام قبل رفع الملف</option>
+                    <option value="flow_1">C-IN</option>
+                    <option value="flow_2">DCS</option>
+                    <option value="flow_3">C-OUT</option>
+                </select>
+                <small>يبني النموذج خطًا سلوكيًا مستقلًا للنظام المحدد.</small>
+            </label>
+
+            <div class="upload-box" id="drop-zone">
+                <div class="upload-icon"></div>
+                <h3>اسحب وأفلت الملف هنا</h3>
+                <p>أو انقر لاختيار ملف (CSV أو XLSX)</p>
+                <input type="file" id="file-input" accept=".csv, .xlsx" hidden>
+                <div class="upload-progress" id="upload-progress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill" role="progressbar" aria-label="تقدم التحليل" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div>
+                    </div>
+                    <span id="progress-text">جاري التحليل...</span>
+                </div>
+            </div>
+            
+            <div class="features-grid">
+                <div class="feature-card glass-panel">
+                    <div class="feature-icon intel-icon"></div>
+                    <h4>إثراء تلقائي</h4>
+                    <p>فحص الهاشات والـ IP عبر AbuseIPDB, VirusTotal, Shodan</p>
+                </div>
+                <div class="feature-card glass-panel">
+                    <div class="feature-icon local-icon"></div>
+                    <h4>تحليل محلي 100%</h4>
+                    <p>لا يتم إرسال بيانات حساسة. الخصوصية أولاً.</p>
+                </div>
+                <div class="feature-card glass-panel">
+                    <div class="feature-icon report-icon"></div>
+                    <h4>تقارير احترافية</h4>
+                    <p>تصدير تقارير Word رسمية و Excel تحليلية بكبسة زر.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard State -->
+        <section id="dashboard-view" class="view-section" style="display: none;">
+            
+            <div class="dash-header">
+                <div class="dash-title">
+                    <h2 id="report-title">نتائج التحليل</h2>
+                    <span class="badge badge-subtle" id="data-type-badge">أحداث ADS</span>
+                </div>
+                <div class="dash-actions">
+                    <button id="btn-enrich" class="btn btn-primary" onclick="app.startEnrichment()">
+                        <span class="icon shield-icon"></span> إثراء الـ IPs
+                    </button>
+                    <label class="scan-mode-switch" title="تجاهل النتائج المحفوظة وإعادة الفحص من المصادر الخارجية">
+                        <input id="force-refresh-toggle" type="checkbox" onchange="app.syncEnrichmentMode()">
+                        <span class="switch-track"><span></span></span>
+                        <span class="switch-label">تحديث من المصادر</span>
+                    </label>
+                    <button id="btn-export-word" class="btn btn-secondary" onclick="app.exportReport('docx')">
+                        <span class="icon word-icon"></span> تقرير Word
+                    </button>
+                    <button id="btn-preview-word" class="btn btn-secondary" onclick="app.previewReport()">معاينة Word</button>
+                    <button id="btn-export-excel" class="btn btn-secondary" onclick="app.exportReport('xlsx')">
+                        <span class="icon excel-icon"></span> تقرير Excel
+                    </button>
+                    <button id="btn-new-analysis" class="btn btn-secondary" onclick="app.newAnalysis()">تحليل جديد</button>
+                    <button id="btn-close-job" class="btn btn-danger" onclick="app.reset()">إغلاق</button>
+                </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="stats-grid" id="stats-container">
+                <!-- Populated via JS -->
+            </div>
+
+            <section id="model-analysis-panel" class="model-analysis-panel glass-panel" style="display:none;">
+                <div class="model-analysis-head">
+                    <div><span>قراءة مترابطة للأدلة</span><h3>التقييم التحليلي المتقدم</h3></div>
+                    <span id="model-analysis-status" class="badge badge-subtle"></span>
+                </div>
+                <p id="model-analysis-summary"></p>
+                <div id="model-analysis-patterns" class="model-analysis-list"></div>
+                <div id="model-analysis-recommendations" class="model-analysis-list"></div>
+            </section>
+            
+            <!-- Enrichment Status -->
+            <div class="enrichment-panel glass-panel" id="enrichment-panel" style="display: none;">
+                <div class="enrichment-header">
+                    <h4>حالة استخبارات التهديدات</h4>
+                    <div class="enrichment-status-actions">
+                        <button id="btn-cancel-enrich" class="btn btn-danger btn-small" onclick="app.cancelEnrichment()" style="display: none;">إلغاء الفحص</button>
+                        <span id="enrich-status-badge" class="badge">قيد الانتظار</span>
+                    </div>
+                </div>
+                <div class="providers-grid" id="providers-container">
+                    <!-- Populated via JS -->
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="table-container glass-panel">
+                <div class="table-header">
+                    <h3>سجل البيانات</h3>
+                    <input type="text" id="search-input" class="search-input" placeholder="ابحث عن IP أو نوع..." onkeyup="app.filterTable()">
+                </div>
+                <div class="table-wrapper">
+                    <table id="data-table">
+                        <thead id="table-head">
+                            <!-- Populated via JS -->
+                        </thead>
+                        <tbody id="table-body">
+                            <!-- Populated via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <div id="word-preview-overlay" class="report-preview-overlay" hidden>
+      <section class="report-preview-dialog" role="dialog" aria-modal="true" aria-label="معاينة تقرير Word">
+        <header class="report-preview-head"><div class="report-preview-title"><b>معاينة تقرير Word</b><small>هذه المعاينة مولّدة من ملف Word نفسه</small></div><div class="report-preview-actions"><a id="preview-download-word" href="#">تنزيل Word</a><button type="button" onclick="app.closeReportPreview()">إغلاق</button></div></header>
+        <iframe id="word-preview-frame" class="report-preview-frame" title="معاينة التقرير"></iframe>
+      </section>
+    </div>
+    <script src="app.js?v=word-preview-2"></script>
+</body>
+</html>

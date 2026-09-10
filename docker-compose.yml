@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    container_name: platformscope-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    environment:
+      - PLATFORM_STORAGE_DIR=/app/storage
+      - PORT=8000
+    volumes:
+      - platformscope-data:/app/storage
+      - platformscope-logs:/app/logs
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+    container_name: platformscope-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
+    depends_on:
+      - backend
+
+volumes:
+  platformscope-data:
+    driver: local
+  platformscope-logs:
+    driver: local

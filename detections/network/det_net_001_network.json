@@ -1,0 +1,88 @@
+{
+  "id": "DET-NET-001",
+  "name": "هجوم حزم ICMP وانتحال العناوين (ICMP Attack & IP Spoofing)",
+  "name_en": "ICMP Attack and IP Spoofing",
+  "description": "رصد هجمات حزم ICMP غير القابلة للوصول أو انتحال عناوين بروتوكول الإنترنت على جدار الحماية.",
+  "category": "network",
+  "severity": "high",
+  "confidence": 90,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "حجب الخدمة والتسلل الشبكي (Network Attack / DoS)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Impact",
+      "Defense Evasion"
+    ],
+    "techniques": [
+      "T1498 - Network Denial of Service",
+      "T1095 - Non-Application Layer Protocol"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "icmp unreachable attack"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "ip spoof attack"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 2,
+    "time_window_seconds": 60,
+    "min_confidence": 85,
+    "group_by": [
+      "src_ip",
+      "destination_ip"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "message": "CID=0x814f041e;AttackType=\"ICMP unreachable attack\"",
+        "source_ip": "10.0.0.1"
+      }
+    ],
+    "negative": [
+      {
+        "message": "Standard ping request echo",
+        "source_ip": "10.0.0.1"
+      }
+    ]
+  },
+  "tags": [
+    "network",
+    "firewall",
+    "icmp",
+    "spoofing"
+  ],
+  "recommendations": [
+    "تفعيل سياسات مكافحة الانتحال (Anti-Spoofing / uRPF) على الموجهات والجدران النارية."
+  ]
+}

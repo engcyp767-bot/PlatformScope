@@ -1,0 +1,85 @@
+{
+  "id": "DET-CLD-002",
+  "name": "هجوم إرهاق المصادقة المتعددة (MFA Fatigue / Push Spam)",
+  "name_en": "MFA Fatigue Push Bombing",
+  "description": "رصد إرسال طلبات مصادقة متتالية بكثافة لإرهاق المستخدم ودفعه للموافقة العرضية على الدخول.",
+  "category": "cloud",
+  "severity": "high",
+  "confidence": 85,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "التفاف على المصادقة (Credential Access)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Credential Access"
+    ],
+    "techniques": [
+      "T1621 - Multi-Factor Authentication Request Generation"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "mfa push notifications rejected"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "multiple mfa prompts"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 3,
+    "time_window_seconds": 180,
+    "min_confidence": 80,
+    "group_by": [
+      "username"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "username": "dev_lead@org.com",
+        "message": "Multiple MFA push notifications rejected by user"
+      }
+    ],
+    "negative": [
+      {
+        "username": "dev_lead@org.com",
+        "message": "Single MFA challenge approved"
+      }
+    ]
+  },
+  "tags": [
+    "cloud",
+    "mfa_fatigue",
+    "identity",
+    "push_spam"
+  ],
+  "recommendations": [
+    "تجميد تسجيل الدخول للحساب والتحقق من هوية المستخدم الحقيقي عبر قناة اتصال بديلة."
+  ]
+}

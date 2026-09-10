@@ -1,0 +1,60 @@
+# Secrets and local configuration
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Runtime state and generated artifacts
+.security-*-pids.json
+.security-portal-logs/
+/logs/
+.tools/
+tmp/
+flowscope/tmp/
+flowscope/tmp????????/
+**/__pycache__/
+*.pyc
+frontend/.next/
+frontend/node_modules/
+*.tsbuildinfo
+gateway/node_modules/
+gateway/dist/
+archive/experimental/go_services/bin/
+artifacts/packages/
+artifacts/bin/
+artifacts/samples/
+artifacts/legacy_runtime_logs/
+dist/
+
+# Locally supplied raw event exports (templates remain tracked separately)
+data/*.csv
+*.db
+*.sqlite
+*.sqlite3
+
+# Job inputs/results and caches can contain sensitive operational data
+storage/
+flowscope/storage/
+threatscope/storage/
+logscope/storage/
+flowscope/output/
+threatscope/output/
+logscope/output/
+
+# Local editor and operating-system metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Test and debug artifacts
+test.zip
+test_proto*.csv
+test_proto_real.db*
+scratch/
+
+# Temp directories from all scopes
+logscope/tmp/
+logscope/tmp????????/
+threatscope/tmp/
+threatscope/tmp????????/

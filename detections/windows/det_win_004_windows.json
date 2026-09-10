@@ -1,0 +1,88 @@
+{
+  "id": "DET-WIN-004",
+  "name": "تثبيت خدمة نظام جديدة مشبوهة (New Service Installed)",
+  "name_en": "New System Service Installed",
+  "description": "رصد تثبيت خدمة جديدة في نظام ويندوز (Event ID 7045) التي قد تستخدم للبقاء الدائم داخل النظام (Persistence).",
+  "category": "windows",
+  "severity": "medium",
+  "confidence": 75,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "بقاء واستقرار (Persistence)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Persistence",
+      "Privilege Escalation"
+    ],
+    "techniques": [
+      "T1543.003 - Windows Service"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "event_id",
+        "operator": "eq",
+        "value": "7045"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "a service was installed in the system"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": false,
+    "threshold": 2,
+    "time_window_seconds": 300,
+    "min_confidence": 70,
+    "group_by": [
+      "device"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "event_id": "7045",
+        "device": "SRV-DB01",
+        "message": "A service was installed in the system"
+      }
+    ],
+    "negative": [
+      {
+        "event_id": "7036",
+        "device": "SRV-DB01",
+        "message": "The Print Spooler service entered the running state"
+      }
+    ]
+  },
+  "tags": [
+    "windows",
+    "persistence",
+    "service_install",
+    "7045"
+  ],
+  "recommendations": [
+    "فحص اسم ومسار الملف التنفيذي للخدمة والتأكد من توقيعه الرقمي."
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "id": "DET-CLD-001",
+  "name": "تسجيل دخول متزامن بمواقع جغرافية متباعدة (Impossible Travel)",
+  "name_en": "Impossible Travel Alert",
+  "description": "رصد تسجيل دخول لنفس المستخدم من موقعين جغرافيين يستحيل الانتقال بينهما في المدة المنقضية.",
+  "category": "cloud",
+  "severity": "high",
+  "confidence": 88,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "اختراق حسابات سحابية (Cloud Identity Compromise)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Initial Access",
+      "Defense Evasion"
+    ],
+    "techniques": [
+      "T1078.004 - Cloud Accounts"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "impossible travel"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "unfamiliar sign-in properties"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 1,
+    "time_window_seconds": 300,
+    "min_confidence": 80,
+    "group_by": [
+      "username"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "username": "cfo@company.com",
+        "message": "Impossible travel alert detected between Riyadh and London"
+      }
+    ],
+    "negative": [
+      {
+        "username": "cfo@company.com",
+        "message": "Regular cloud sign-in from recognized IP"
+      }
+    ]
+  },
+  "tags": [
+    "cloud",
+    "azure_ad",
+    "identity",
+    "impossible_travel"
+  ],
+  "recommendations": [
+    "إبطال كافة الجلسات النشطة للمستخدم وإعادة تعيين كلمة المرور والمصادقة متعددة العوامل."
+  ]
+}

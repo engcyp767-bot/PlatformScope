@@ -1,0 +1,114 @@
+{
+  "id": "DET-WIN-001",
+  "name": "مسح وتفريغ سجل الأحداث الأمني (Security Event Log Cleared)",
+  "name_en": "Security Event Log Cleared",
+  "description": "رصد قيام مستخدم أو برمجية خبيثة بحذف وتفريغ سجل التدقيق الأمني (Event ID 1102 / 104) لإخفاء الأثر الرقمي للأعمال المنفذة.",
+  "category": "windows",
+  "severity": "critical",
+  "confidence": 95,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "إخفاء الأثر والتمويه (Defense Evasion)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Defense Evasion"
+    ],
+    "techniques": [
+      "T1070.001 - Clear Windows Event Logs"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "event_id",
+        "operator": "in",
+        "value": [
+          "1102",
+          "104"
+        ]
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "the audit log was cleared"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "the event log was cleared"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 1,
+    "time_window_seconds": 60,
+    "min_confidence": 85,
+    "group_by": [
+      "device",
+      "username"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "admin",
+      "timestamp": "2026-09-03T23:01:46.607255+00:00",
+      "reason": "Rule toggled ON"
+    },
+    {
+      "version": "1.0.0",
+      "changed_by": "admin",
+      "timestamp": "2026-09-03T23:01:46.075875+00:00",
+      "reason": "Rule toggled OFF"
+    },
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release for audit log tampering detection"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "event_id": "1102",
+        "log_source": "windows",
+        "message": "The audit log was cleared by Administrator",
+        "username": "Administrator",
+        "device": "DC01"
+      }
+    ],
+    "negative": [
+      {
+        "event_id": "4624",
+        "log_source": "windows",
+        "message": "An account was successfully logged on",
+        "username": "user1",
+        "device": "WS01"
+      }
+    ]
+  },
+  "tags": [
+    "windows",
+    "defense_evasion",
+    "log_clearing",
+    "tampering"
+  ],
+  "recommendations": [
+    "عزل المحطة فوراً والتحقق من الحساب المنفذ لعملية مسح السجلات.",
+    "استرجاع السجلات من نظام التخزين المركزي SIEM / WORM إن وجد."
+  ],
+  "integrity_hash": "6a969551ee49008c4cdac35d5d5279a16af4037f2339af54fc7a1f1130ca059f"
+}

@@ -1,0 +1,101 @@
+{
+  "id": "DET-NET-002",
+  "name": "اتصال خارجي بمنافذ تحكم مشبوهة (Suspicious C2 Port Connection)",
+  "name_en": "Suspicious C2 Port Connection",
+  "description": "رصد محاولات اتصال صادرة نحو منافذ خوادم تحكم شائعة (4444, 1337, 8888, 9001).",
+  "category": "network",
+  "severity": "critical",
+  "confidence": 85,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "اتصال وتحكم خارجي (Command and Control)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Command and Control"
+    ],
+    "techniques": [
+      "T1071 - Application Layer Protocol",
+      "T1571 - Non-Standard Port"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "destination_port",
+        "operator": "in",
+        "value": [
+          4444,
+          1337,
+          8888,
+          9001
+        ]
+      },
+      {
+        "field": "raw_fields.dst_port",
+        "operator": "in",
+        "value": [
+          "4444",
+          "1337",
+          "8888",
+          "9001"
+        ]
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 1,
+    "time_window_seconds": 60,
+    "min_confidence": 80,
+    "group_by": [
+      "source_ip",
+      "destination_ip"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "destination_port": 4444,
+        "source_ip": "10.10.10.5",
+        "destination_ip": "198.51.100.22",
+        "message": "Outbound TCP connection"
+      }
+    ],
+    "negative": [
+      {
+        "destination_port": 443,
+        "source_ip": "10.10.10.5",
+        "destination_ip": "198.51.100.22",
+        "message": "HTTPS connection"
+      }
+    ]
+  },
+  "tags": [
+    "network",
+    "c2",
+    "reverse_shell",
+    "metasploit"
+  ],
+  "recommendations": [
+    "عزل المحطة المصدرية فوراً ومراجعة العمليات المرتبطة بالاتصال الشبكي."
+  ]
+}

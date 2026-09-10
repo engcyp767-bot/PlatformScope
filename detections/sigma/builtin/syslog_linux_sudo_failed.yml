@@ -1,0 +1,43 @@
+title: Repeated Linux Sudo Authentication Failures
+id: a56e2978-83b4-4b55-a0f1-1e948cc92d11
+status: production
+description: Detects failed sudo privilege escalation attempts in Linux auth logs indicating password guessing or privilege abuse.
+author: SOC Detection Engineering Team
+date: 2024/04/01
+modified: 2026/04/10
+license: Apache-2.0
+references:
+    - https://attack.mitre.org/techniques/T1548/003/
+tags:
+    - attack.privilege_escalation
+    - attack.t1548.003
+logsource:
+    category: auth
+    product: linux
+detection:
+    selection:
+        message|contains:
+            - 'authentication failure'
+            - 'incorrect password attempts'
+            - 'NOT in sudoers'
+        program: 'sudo'
+    condition: selection
+falsepositives:
+    - User mistyping their sudo password once.
+level: medium
+fields:
+    - message
+    - program
+    - User
+    - Host
+test_samples:
+    positive:
+        - message: 'pam_unix(sudo:auth): authentication failure; logname= user=badguy uid=1001 euid=0'
+          program: 'sudo'
+          User: 'badguy'
+          Host: 'web-srv-01'
+    negative:
+        - message: 'pam_unix(sudo:session): session opened for user root by admin(uid=0)'
+          program: 'sudo'
+          User: 'admin'
+          Host: 'web-srv-01'

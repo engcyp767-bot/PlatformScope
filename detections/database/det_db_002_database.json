@@ -1,0 +1,86 @@
+{
+  "id": "DET-DB-002",
+  "name": "تنفيذ أوامر النظام عبر خادم قواعد البيانات (Database xp_cmdshell Execution)",
+  "name_en": "Database xp_cmdshell Execution",
+  "description": "رصد محاولات تفعيل أو تشغيل إجراء xp_cmdshell لتنفيذ أوامر سطر الأوامر من داخل محرك قواعد البيانات.",
+  "category": "database",
+  "severity": "critical",
+  "confidence": 96,
+  "lifecycle": "production",
+  "enabled": true,
+  "is_deleted": false,
+  "author": "SOC Detection Engineering Team",
+  "version": "1.0.0",
+  "threat_family": "تنفيذ غير مصرح به (Execution)",
+  "mitre_attack": {
+    "version": "v14.1",
+    "tactics": [
+      "Execution"
+    ],
+    "techniques": [
+      "T1059 - Command and Scripting Interpreter"
+    ]
+  },
+  "condition": {
+    "or": [
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "xp_cmdshell"
+      },
+      {
+        "field": "message",
+        "operator": "contains_ci",
+        "value": "sp_configure 'xp_cmdshell'"
+      }
+    ]
+  },
+  "incident_policy": {
+    "auto_promote": true,
+    "threshold": 1,
+    "time_window_seconds": 30,
+    "min_confidence": 90,
+    "group_by": [
+      "destination_ip",
+      "username"
+    ]
+  },
+  "metrics": {
+    "evaluated_events": 0,
+    "match_count": 0,
+    "execution_time_ms": 0.0,
+    "false_positive_count": 0,
+    "last_matched_at": null
+  },
+  "version_history": [
+    {
+      "version": "1.0.0",
+      "changed_by": "soc_admin",
+      "timestamp": "2026-09-04T01:00:00Z",
+      "reason": "Baseline rule release"
+    }
+  ],
+  "test_samples": {
+    "positive": [
+      {
+        "message": "EXEC master..xp_cmdshell \"whoami /all\"",
+        "username": "sa"
+      }
+    ],
+    "negative": [
+      {
+        "message": "EXEC dbo.sp_GetCustomerOrders @CustomerId = 100",
+        "username": "app_user"
+      }
+    ]
+  },
+  "tags": [
+    "database",
+    "mssql",
+    "xp_cmdshell",
+    "privilege_abuse"
+  ],
+  "recommendations": [
+    "تعطيل xp_cmdshell فوراً ومراجعة صلاحيات حساب sa والحسابات المستخدمة للربط."
+  ]
+}
