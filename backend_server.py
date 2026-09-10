@@ -114,7 +114,7 @@ def _get_platform_health_data() -> dict:
         "name_en": "API Gateway",
         "status": "healthy",
         "latency_ms": 0.5,
-        "details": {"port": 3000, "engine_proxy": f"http://{HOST}:{PORT}"},
+        "details": {"port": int(os.environ.get("SECURITY_FRONTEND_PORT", "3000")), "engine_proxy": f"http://{HOST}:{PORT}"},
         "last_checked": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     })
 
@@ -284,11 +284,17 @@ def _get_platform_health_data() -> dict:
 
 HOST = os.environ.get("ANALYSIS_ENGINE_HOST", "127.0.0.1")
 PORT = int(os.environ.get("ANALYSIS_ENGINE_PORT", "8082"))
+SECURITY_FRONTEND_PORT = os.environ.get("SECURITY_FRONTEND_PORT", "3000")
 ALLOWED_ORIGINS = {
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-    *(origin.strip() for origin in os.environ.get("SECURITY_ALLOWED_ORIGINS", "").split(",") if origin.strip()),
+    f"http://127.0.0.1:{SECURITY_FRONTEND_PORT}",
+    f"http://localhost:{SECURITY_FRONTEND_PORT}",
+    "http://127.0.0.1:8181",
+    "http://localhost:8181",
 }
+if os.environ.get("SECURITY_ALLOWED_ORIGINS"):
+    for origin in os.environ.get("SECURITY_ALLOWED_ORIGINS").split(","):
+        if origin.strip():
+            ALLOWED_ORIGINS.add(origin.strip())
 _LOGIN_ATTEMPTS: dict[str, list[float]] = {}
 _LOGIN_LOCK = threading.Lock()
 _LOGIN_WINDOW_SECONDS = 300
@@ -333,8 +339,7 @@ class UnifiedAPIHandler(threat_server.Handler):
             super().handle_one_request()
         except Exception as exc:
             logger = get_logger("backend")
-            logger.exception("Unhandled backend exception", exc=exc, event_code="GENERAL_ERROR")
-            logger.exception("حدث استثناء غير معالج في الخادم الموحد", exc=exc, event_code="GENERAL_ERROR")
+            logger.exception("Unhandled backend exception / حدث استثناء غير معالج في الخادم الموحد", exc_info=True)
             raise
         finally:
             clear_context()
@@ -345,8 +350,6 @@ class UnifiedAPIHandler(threat_server.Handler):
             self.send_header("Access-Control-Allow-Origin", origin)
             self.send_header("Vary", "Origin")
             self.send_header("Access-Control-Allow-Credentials", "true")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename, X-Source-System, Cache-Control")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, DELETE, PATCH, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Filename, X-Source-System, Cache-Control, X-Request-ID, X-Correlation-ID, X-Job-ID")
         self.send_header("Access-Control-Expose-Headers", "X-Request-ID, X-Correlation-ID")
@@ -630,7 +633,6 @@ class UnifiedAPIHandler(threat_server.Handler):
                 source_app=source_app, assigned_to=assigned_to, search=search,
                 limit=limit, offset=offset
             )
-            self._json(200, {"incidents": items, "total": total, "limit": limit, "offset": offset})
             ctx = authorization.build_security_context(identity)
             items = authorization.filter_dataset(ctx, items, "incidents")
             self._json(200, {"incidents": items, "total": len(items) if ctx.data_scope != "all" else total, "limit": limit, "offset": offset})
@@ -1131,133 +1133,13 @@ class UnifiedAPIHandler(threat_server.Handler):
             self._json(200, ast)
             return
         # Graph Correlation GET Routes
-        if path == "/api/correlation/summary":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            eng = graph_correlation.get_graph_correlation_engine()
-            self._json(200, eng.get_summary())
-            return
-        if path == "/api/correlation/graph":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            qs = parse_qs(urlparse(self.path).query)
-            limit = int(qs.get("limit", [300])[0]) if qs.get("limit") else 300
-            incident_id = qs.get("incident_id", [None])[0]
-            asset_id = qs.get("asset_id", [None])[0]
-            eng = graph_correlation.get_graph_correlation_engine()
-            if incident_id:
-                inc = incident_manager.get_incident(incident_id)
-                entity_nodes = set()
-                if inc:
-                    for ent in inc.get("entities", []):
-                        val = ent.get("value", "")
-                        for nid in eng.graph._nodes.keys():
-                            if val.lower() in nid.lower():
-                                entity_nodes.add(nid)
-                if entity_nodes:
-                    snapshot = eng.graph.extract_subgraph(entity_nodes, max_hops=2)
-                else:
-                    snapshot = eng.graph.get_snapshot(limit_nodes=limit)
-            elif asset_id:
-                ast = asset_manager.get_asset(asset_id)
-                entity_nodes = set()
-                if ast:
-                    h_val = ast.get("hostname", "")
-                    ip_val = ast.get("primary_ip", "")
-                    for nid in eng.graph._nodes.keys():
-                        if (h_val and h_val.lower() in nid.lower()) or (ip_val and ip_val in nid):
-                            entity_nodes.add(nid)
-                if entity_nodes:
-                    snapshot = eng.graph.extract_subgraph(entity_nodes, max_hops=2)
-                else:
-                    snapshot = eng.graph.get_snapshot(limit_nodes=limit)
-            else:
-                snapshot = eng.graph.get_snapshot(limit_nodes=limit)
-            self._json(200, snapshot)
-            return
-        if path == "/api/correlation/attack-chains":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            eng = graph_correlation.get_graph_correlation_engine()
-            chains = eng.find_attack_chains()
-            self._json(200, {"attack_chains": [c.to_dict() for c in chains]})
-            return
-        if path == "/api/correlation/lateral-movements":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            eng = graph_correlation.get_graph_correlation_engine()
-            laterals = eng.find_lateral_movements()
-            self._json(200, {"lateral_movements": [lm.to_dict() for lm in laterals]})
-            return
-        if path == "/api/correlation/insider-threats":
-            if not self._require_permission(identity, "correlation.view"):
-                return
+
             eng = graph_correlation.get_graph_correlation_engine()
             threats = eng.find_insider_threats()
             self._json(200, {"insider_threats": [it.to_dict() for it in threats]})
             return
         # Graph Correlation GET Routes
-        if path == "/api/correlation/summary":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            eng = graph_correlation.get_graph_correlation_engine()
-            self._json(200, eng.get_summary())
-            return
-        if path == "/api/correlation/graph":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            qs = parse_qs(urlparse(self.path).query)
-            limit = int(qs.get("limit", [300])[0]) if qs.get("limit") else 300
-            incident_id = qs.get("incident_id", [None])[0]
-            asset_id = qs.get("asset_id", [None])[0]
-            eng = graph_correlation.get_graph_correlation_engine()
-            if incident_id:
-                inc = incident_manager.get_incident(incident_id)
-                entity_nodes = set()
-                if inc:
-                    for ent in inc.get("entities", []):
-                        val = ent.get("value", "")
-                        for nid in eng.graph._nodes.keys():
-                            if val.lower() in nid.lower():
-                                entity_nodes.add(nid)
-                if entity_nodes:
-                    snapshot = eng.graph.extract_subgraph(entity_nodes, max_hops=2)
-                else:
-                    snapshot = eng.graph.get_snapshot(limit_nodes=limit)
-            elif asset_id:
-                ast = asset_manager.get_asset(asset_id)
-                entity_nodes = set()
-                if ast:
-                    h_val = ast.get("hostname", "")
-                    ip_val = ast.get("primary_ip", "")
-                    for nid in eng.graph._nodes.keys():
-                        if (h_val and h_val.lower() in nid.lower()) or (ip_val and ip_val in nid):
-                            entity_nodes.add(nid)
-                if entity_nodes:
-                    snapshot = eng.graph.extract_subgraph(entity_nodes, max_hops=2)
-                else:
-                    snapshot = eng.graph.get_snapshot(limit_nodes=limit)
-            else:
-                snapshot = eng.graph.get_snapshot(limit_nodes=limit)
-            self._json(200, snapshot)
-            return
-        if path == "/api/correlation/attack-chains":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            eng = graph_correlation.get_graph_correlation_engine()
-            chains = eng.find_attack_chains()
-            self._json(200, {"attack_chains": [c.to_dict() for c in chains]})
-            return
-        if path == "/api/correlation/lateral-movements":
-            if not self._require_permission(identity, "correlation.view"):
-                return
-            eng = graph_correlation.get_graph_correlation_engine()
-            laterals = eng.find_lateral_movements()
-            self._json(200, {"lateral_movements": [lm.to_dict() for lm in laterals]})
-            return
-        if path == "/api/correlation/insider-threats":
-            if not self._require_permission(identity, "correlation.view"):
-                return
+
             eng = graph_correlation.get_graph_correlation_engine()
             threats = eng.find_insider_threats()
             self._json(200, {"insider_threats": [it.to_dict() for it in threats]})
@@ -1273,18 +1155,6 @@ class UnifiedAPIHandler(threat_server.Handler):
             return
         if self._log_route("GET", path):
             self._delegate_log(log_server.RequestHandler.do_GET)
-            return
-        asset_patch_match = re.fullmatch(r"/api/assets/([A-Za-z0-9_-]+)", path)
-        if asset_patch_match:
-            if not self._require_permission(identity, "assets.manage"):
-                return
-            asset_id = asset_patch_match.group(1)
-            payload = self._read_json_body(65_536)
-            updated = asset_manager.update_asset(asset_id, payload, actor=identity["username"])
-            if not updated:
-                self._json(404, {"error": "الأصل الأمني غير موجود."})
-                return
-            self._json(200, updated)
             return
         self._json(404, {"error": "Not found"})
 
@@ -1434,9 +1304,6 @@ class UnifiedAPIHandler(threat_server.Handler):
             mgr = LicenseManager.get_instance()
             self._json(200, mgr.get_license_info(force_refresh=True).to_dict())
             return
-        if path == "/api/incidents/case-verify":
-            if not self._require_permission(identity, "incidents.view"):
-                return
             try:
                 content_len = int(self.headers.get("Content-Length") or 0)
                 if content_len <= 0 or content_len > 100 * 1024 * 1024:
@@ -1749,6 +1616,8 @@ class UnifiedAPIHandler(threat_server.Handler):
                 self._json(400, {"error": str(err)})
             return
         if path == "/api/authorization/sharing/share":
+            if not self._require_permission(identity, "sharing.manage"):
+                return
             try:
                 payload = self._read_json_body(65_536)
                 sh = authorization.share_resource(
@@ -2286,43 +2155,13 @@ class UnifiedAPIHandler(threat_server.Handler):
                 self._json(404, {"error": str(e)})
             return
         # Graph Correlation POST Routes
-        if path == "/api/correlation/promote":
-            if not self._require_permission(identity, "correlation.manage"):
-                return
-            payload = self._read_json_body(65_536)
-            pattern_type = str(payload.get("pattern_type") or "").strip()
-            pattern_id = str(payload.get("pattern_id") or "").strip()
-            eng = graph_correlation.get_graph_correlation_engine()
-            inc = eng.promote_pattern_to_incident(pattern_type, pattern_id)
-            if not inc:
-                self._json(400, {"error": "تعذر ترقية نمط الترابط الجنائي إلى حادث (قد يكون تمت ترقيته مسبقاً أو غير موجود)."})
-                return
-            self._json(200, {"success": True, "incident": inc})
-            return
-        if path == "/api/correlation/analyze":
-            if not self._require_permission(identity, "correlation.manage"):
-                return
+
             eng = graph_correlation.get_graph_correlation_engine()
             res = eng.correlate_all()
             self._json(200, {"success": True, "result": res})
             return
         # Graph Correlation POST Routes
-        if path == "/api/correlation/promote":
-            if not self._require_permission(identity, "correlation.manage"):
-                return
-            payload = self._read_json_body(65_536)
-            pattern_type = str(payload.get("pattern_type") or "").strip()
-            pattern_id = str(payload.get("pattern_id") or "").strip()
-            eng = graph_correlation.get_graph_correlation_engine()
-            inc = eng.promote_pattern_to_incident(pattern_type, pattern_id)
-            if not inc:
-                self._json(400, {"error": "تعذر ترقية نمط الترابط الجنائي إلى حادث (قد يكون تمت ترقيته مسبقاً أو غير موجود)."})
-                return
-            self._json(200, {"success": True, "incident": inc})
-            return
-        if path == "/api/correlation/analyze":
-            if not self._require_permission(identity, "correlation.manage"):
-                return
+
             eng = graph_correlation.get_graph_correlation_engine()
             res = eng.correlate_all()
             self._json(200, {"success": True, "result": res})
@@ -2390,6 +2229,20 @@ class UnifiedAPIHandler(threat_server.Handler):
 
     def do_DELETE(self) -> None:
         path = urlparse(self.path).path
+        if path.startswith("/api/v1/"):
+            identity = security_auth.request_identity(self.headers)
+            auth_ctx = {"authenticated": bool(identity), "user": identity}
+            content_length = int(self.headers.get("Content-Length") or 0)
+            body_bytes = self.rfile.read(content_length) if content_length > 0 else None
+            resp = v1_api_router.dispatch(
+                method="DELETE",
+                raw_url=self.path,
+                headers=self._headers_dict(),
+                body_bytes=body_bytes,
+                auth_context=auth_ctx,
+            )
+            self._json(resp.status_code, resp.to_dict())
+            return
         identity = self._require_authentication()
         if not identity:
             return
@@ -2498,7 +2351,10 @@ class UnifiedAPIHandler(threat_server.Handler):
                 return
             asset_id = asset_del_match.group(1)
             success = asset_manager.delete_asset(asset_id, actor=identity["username"])
-            self._json(200, {"deleted": True, "id": asset_id})
+            if success:
+                self._json(200, {"deleted": True, "id": asset_id})
+            else:
+                self._json(404, {"error": "Asset not found or failed to delete"})
             return
         role_del_match = re.fullmatch(r"/api/authorization/roles/([A-Za-z0-9_-]+)", path)
         if role_del_match:
@@ -2548,10 +2404,24 @@ class UnifiedAPIHandler(threat_server.Handler):
         if self._log_route("DELETE", path):
             self._delegate_log(log_server.RequestHandler.do_DELETE)
             return
+        if self._flow_route("DELETE", path):
+            self._delegate_flow(flow_server.RequestHandler.do_DELETE)
+            return
+        if self._threat_route("DELETE", path):
+            self._delegate_threat(threat_server.Handler.do_DELETE)
+            return
+        if self._log_route("DELETE", path):
+            self._delegate_log(log_server.RequestHandler.do_DELETE)
+            return
         self._json(404, {"error": "Not found"})
 
     def do_PATCH(self) -> None:
         path = urlparse(self.path).path
+
+        asset_patch_match = re.fullmatch(r"/api/assets/([A-Za-z0-9_-]+)", path)
+        if asset_patch_match:
+            if not self._require_permission(identity, "assets.manage"):
+                return
         identity = self._require_authentication()
         if not identity:
             return
@@ -2745,7 +2615,7 @@ class UnifiedAPIHandler(threat_server.Handler):
                 ioc = mgr.update_ioc(
                     intel_patch_match.group(1),
                     actor=identity.get("username", "analyst"),
-                    **payload
+                    **{k: v for k, v in payload.items() if k in {"threat_actor", "severity", "tags", "notes", "false_positive"}}
                 )
                 if not ioc:
                     self._json(404, {"error": "مؤشر التهديد غير موجود."})
@@ -2787,40 +2657,6 @@ class UnifiedAPIHandler(threat_server.Handler):
             self._json(resp.status_code, resp.to_dict())
             return
         self._json(404, {"error": "Not found"})
-
-    def do_DELETE(self) -> None:
-        path = urlparse(self.path).path
-        if path.startswith("/api/v1/"):
-            identity = security_auth.request_identity(self.headers)
-            auth_ctx = {"authenticated": bool(identity), "user": identity}
-            content_length = int(self.headers.get("Content-Length") or 0)
-            body_bytes = self.rfile.read(content_length) if content_length > 0 else None
-            resp = v1_api_router.dispatch(
-                method="DELETE",
-                raw_url=self.path,
-                headers=self._headers_dict(),
-                body_bytes=body_bytes,
-                auth_context=auth_ctx,
-            )
-            self._json(resp.status_code, resp.to_dict())
-            return
-        identity = self._require_authentication()
-        if not identity:
-            return
-        permission = self._route_permission("DELETE", path)
-        if permission and not self._require_permission(identity, permission):
-            return
-        if self._flow_route("DELETE", path):
-            self._delegate_flow(flow_server.RequestHandler.do_DELETE)
-            return
-        if self._threat_route("DELETE", path):
-            self._delegate_threat(threat_server.Handler.do_DELETE)
-            return
-        if self._log_route("DELETE", path):
-            self._delegate_log(log_server.RequestHandler.do_DELETE)
-            return
-        self._json(404, {"error": "Not found"})
-
 
     def _add_incident_evidence(self, incident_id: str, actor: str) -> None:
         try:
